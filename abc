@@ -1,0 +1,96 @@
+import numpy as np
+from scipy.special import erfc
+import matplotlib.pyplot as plt
+
+# Parameters
+N = int(1e6)                          # Number of bits or symbols
+Eb_N0_dB = np.arange(-3, 60)         # Multiple Eb/N0 (SNR) values in dB
+
+# Transmitter
+ip = np.random.rand(N) > 0.5         # Generating 0 or 1 with equal probability
+s = 2 * ip - 1                        # BPSK modulation: 0 -> -1, 1 -> +1
+
+# Simulation
+nErr = np.zeros(len(Eb_N0_dB))       # To store the number of errors for each SNR
+
+for i, Eb_N0 in enumerate(Eb_N0_dB):
+    # Noise: complex AWGN with zero mean and unit variance
+    n = np.sqrt(0.5) * (np.random.randn(N) + 1j * np.random.randn(N))
+
+    # Rayleigh fading channel coefficients
+    h = np.sqrt(0.5) * (np.random.randn(N) + 1j * np.random.randn(N))
+
+    # Received signal
+    y = h * s + np.sqrt(10 ** (-Eb_N0 / 10)) * n
+
+    # Receiver - Equalization and hard decision decoding
+    ipHat = (np.real(y / h) > 0).astype(int)
+
+    # Counting the errors
+    nErr[i] = np.sum(ip != ipHat)
+
+# BER calculation
+simBer = nErr / N                                           # Simulated BER
+theoryBerAWGN = 0.5 * erfc(np.sqrt(10 ** (Eb_N0_dB / 10)))  # Theoretical BER for AWGN
+theoryBer = 0.5 * (1 - np.sqrt(10 ** (Eb_N0_dB / 10) / (1 + 10 ** (Eb_N0_dB / 10))))  # Rayleigh
+
+# Plotting results
+plt.semilogy(Eb_N0_dB, theoryBerAWGN, 'cd-', linewidth=2)
+plt.semilogy(Eb_N0_dB, theoryBer, 'bp-', linewidth=2)
+plt.semilogy(Eb_N0_dB, simBer, 'mx-', linewidth=2)
+
+plt.axis([-3, 35, 1e-5, 0.5])
+plt.grid(True, which="both")
+plt.legend(['AWGN-Theory', 'Rayleigh-Theory', 'Rayleigh-Simulation'])
+plt.xlabel('Eb/No (dB)')
+plt.ylabel('Bit Error Rate (BER)')
+plt.title('BER for BPSK modulation in Rayleigh channel')
+plt.show()
+ **************************************************
+
+import numpy as np
+
+# Code sequences
+c1 = [1, 1, 1, 1] 
+c2 = [1, -1, 1, -1]
+c3 = [1, 1, -1, -1] 
+c4 = [1, -1, -1, 1] 
+
+print("Enter the data bits (only 1 or -1):")
+d1 = int(input("Enter D1: ")) 
+d2 = int(input("Enter D2: "))
+d3 = int(input("Enter D3: "))
+d4 = int(input("Enter D4: ")) 
+
+# Modulation using spreading codes
+r1 = np.multiply(c1, d1) 
+r2 = np.multiply(c2, d2) 
+r3 = np.multiply(c3, d3)
+r4 = np.multiply(c4, d4) 
+
+# Add all user signals to form the resultant channel
+resultant_channel = r1 + r2 + r3 + r4
+print("Resultant Channel:", resultant_channel)
+
+# Listening to specific channel
+Channel = int(input("Enter the station to listen (1=C1, 2=C2, 3=C3, 4=C4): "))
+if Channel == 1:
+    rc = c1
+elif Channel == 2:
+    rc = c2
+elif Channel == 3:
+    rc = c3
+elif Channel == 4:
+    rc = c4
+else:
+    print("Invalid channel selected.")
+    rc = [0, 0, 0, 0]  # default to zero to avoid crashing
+
+# Demodulation
+inner_product = np.multiply(resultant_channel, rc)
+print("Inner Product:", inner_product)
+
+# Recover original data bit
+res1 = sum(inner_product)
+data = res1 / len(inner_product)
+print("Data bit that was sent:", data)
